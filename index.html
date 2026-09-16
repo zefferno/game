@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>מסע הקוסמוס - משימת גופי הלשון</title>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(23, 32, 54, 0.85);
+            --primary-glow: #00f0ff;
+            --secondary-glow: #ff007f;
+            --accent-green: #00ff88;
+            --text-main: #ffffff;
+            --font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: var(--font-family);
+            color: var(--text-main);
+        }
+
+        /* SVG Vector Background Animation */
+        #bg-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Main Game Layout */
+        #game-container {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* Header / Stats Bar */
+        .stats-bar {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--card-bg);
+            border: 2px solid var(--primary-glow);
+            border-radius: 20px;
+            padding: 12px 25px;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-item {
+            font-size: 1.3rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-value {
+            color: var(--primary-glow);
+            font-size: 1.5rem;
+        }
+
+        /* Central Question Zone */
+        .question-card {
+            background: var(--card-bg);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 30px;
+            width: 100%;
+            max-width: 700px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease;
+        }
+
+        .target-word {
+            font-size: 3rem;
+            font-weight: 900;
+            color: #ffffff;
+            text-shadow: 0 0 20px var(--primary-glow);
+            margin: 15px 0;
+            letter-spacing: 1px;
+            line-height: 1.2;
+        }
+
+        .instruction {
+            font-size: 1.2rem;
+            color: #a0aec0;
+        }
+
+        .tip-box {
+            font-size: 1rem;
+            color: #ffd700;
+            background: rgba(255, 215, 0, 0.1);
+            padding: 10px 18px;
+            border-radius: 12px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        /* Interactive Buttons Matrix */
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 20px;
+        }
+
+        .option-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid var(--primary-glow);
+            border-radius: 18px;
+            padding: 20px 10px;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .option-btn:active {
+            transform: scale(0.95);
+        }
+
+        .option-sub {
+            font-size: 0.85rem;
+            opacity: 0.75;
+            font-weight: normal;
+        }
+
+        /* Button States */
+        .option-btn.correct {
+            background: var(--accent-green) !important;
+            border-color: #ffffff !important;
+            color: #000 !important;
+            box-shadow: 0 0 25px var(--accent-green) !important;
+        }
+
+        .option-btn.wrong {
+            background: var(--secondary-glow) !important;
+            border-color: #ffffff !important;
+            box-shadow: 0 0 25px var(--secondary-glow) !important;
+            animation: shake 0.4s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-10px); }
+            40%, 80% { transform: translateX(10px); }
+        }
+
+        /* Overlay Screens */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(11, 15, 25, 0.95);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .btn-start {
+            background: linear-gradient(45deg, var(--primary-glow), var(--secondary-glow));
+            border: none;
+            border-radius: 30px;
+            padding: 18px 50px;
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.5);
+            cursor: pointer;
+            margin-top: 30px;
+            transition: transform 0.2s ease;
+        }
+
+        .btn-start:active {
+            transform: scale(0.95);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* iPad Responsive Adjustments */
+        @media (max-width: 768px) {
+            .target-word { font-size: 2.2rem; }
+            .options-grid { grid-template-columns: repeat(1, 1fr); gap: 12px; }
+            .option-btn { padding: 16px 20px; flex-direction: row; justify-content: space-between; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Vector Space Background -->
+    <svg id="bg-canvas">
+        <defs>
+            <radialGradient id="star-glow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
+                <stop offset="100%" stop-color="#00f0ff" stop-opacity="0"/>
+            </radialGradient>
+        </defs>
+    </svg>
+
+    <!-- Start Overlay -->
+    <div id="start-screen" class="overlay">
+        <h1 style="font-size: 3rem; margin-bottom: 10px; text-shadow: 0 0 20px var(--primary-glow);">🚀 מסע הגופים בלשון</h1>
+        <p style="font-size: 1.3rem; max-width: 500px; color: #a0aec0; line-height: 1.6;">
+            ברוכים הבאים לחללית הלשון! זהו את הגוף הנכון בכל שאלה (ראשון, שני, שלישי) ולנצחו במשחק!
+        </p>
+        <button class="btn-start" onclick="startGame()">מתחילים למשחק!</button>
+    </div>
+
+    <!-- End Game Overlay -->
+    <div id="end-screen" class="overlay hidden">
+        <h1 style="font-size: 3.5rem; color: var(--accent-green); text-shadow: 0 0 20px var(--accent-green);">כל הכבוד! אלופים! 🏆</h1>
+        <p id="final-score" style="font-size: 1.8rem; margin: 20px 0;"></p>
+        <button class="btn-start" onclick="startGame()">משחק חדש 🔄</button>
+    </div>
+
+    <!-- Main Game Screen -->
+    <div id="game-container">
+        
+        <!-- Header / Stats -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span>⭐ ניקוד:</span>
+                <span id="score" class="stat-value">0</span>
+            </div>
+            <div class="stat-item">
+                <span>📍 שאלה:</span>
+                <span id="progress" class="stat-value">1/10</span>
+            </div>
+        </div>
+
+        <!-- Question Section -->
+        <div class="question-card">
+            <div class="instruction">מהו הגוף של המילה / המשפט?</div>
+            <div id="target-word" class="target-word">---</div>
+            <div id="tip-display" class="tip-box">💡 רמז</div>
+        </div>
+
+        <!-- Answer Options Matrix -->
+        <div class="options-grid" id="options-container">
+            <!-- Dynamic Buttons -->
+        </div>
+
+    </div>
+
+    <script>
+        // Extended Question Pool
+        const questionPool = [
+            // מילים בודדות
+            { word: "אני", body: "ראשון", tip: "מדבר/ת - אני זה שמדבר!" },
+            { word: "אתה", body: "שני", tip: "נוכח - נמצא מולי, פונים אליו!" },
+            { word: "את", body: "שני", tip: "נוכחת - נמצאת מולי!" },
+            { word: "הוא", body: "שלישי", tip: "נסתר - מוסתר, לא נמצא בשיחה" },
+            { word: "היא", body: "שלישי", tip: "נסתרת - מוסתרת, לא נמצאת בשיחה" },
+            { word: "אנחנו", body: "ראשון", tip: "מדברים/ות - אנחנו מדברים יחד!" },
+            { word: "אתם", body: "שני", tip: "נוכחים - קבוצה שמולנו!" },
+            { word: "אתן", body: "שני", tip: "נוכחות - קבוצת בנות שמולנו!" },
+            { word: "הם", body: "שלישי", tip: "נסתרים - הם לא איתנו כרגע" },
+            { word: "הן", body: "שלישי", tip: "נסתרות - הן לא איתנו כרגע" },
+            
+            // משפטים קצרים
+            { word: "אנחנו הולכים לטיול", body: "ראשון", tip: "מי הולך? 'אנחנו' (מדברים)" },
+            { word: "היא קוראת ספר", body: "שלישי", tip: "מי קוראת? 'היא' (נסתרת)" },
+            { word: "האם אתם מוכנים?", body: "שני", tip: "אל מי פונים? 'אתם' (נוכחים)" },
+            { word: "אני אוהב לשחק", body: "ראשון", tip: "מי אוהב? 'אני' (מדבר)" },
+            { word: "הם רצים בפארק", body: "שלישי", tip: "מי רץ? 'הם' (נסתרים)" },
+            { word: "את שרה יפה מאוד", body: "שני", tip: "אל מי פונים? 'את' (נוכחת)" }
+        ];
+
+        let gameData = [];
+        let currentIndex = 0;
+        let score = 0;
+        let audioCtx = null;
+
+        function initBackground() {
+            const svg = document.getElementById('bg-canvas');
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+            svg.innerHTML = '';
+
+            for(let i = 0; i < 60; i++) {
+                let circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("cx", Math.random() * w);
+                circle.setAttribute("cy", Math.random() * h);
+                circle.setAttribute("r", Math.random() * 2 + 1);
+                circle.setAttribute("fill", "#00f0ff");
+                circle.setAttribute("opacity", Math.random() * 0.8 + 0.2);
+                svg.appendChild(circle);
+            }
+        }
+
+        function playSound(type) {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'correct') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            }
+        }
+
+        function shuffle(array) {
+            return array.sort(() => Math.random() - 0.5);
+        }
+
+        function startGame() {
+            currentIndex = 0;
+            score = 0;
+            // בחירת 10 שאלות אקראיות מתוך המאגר
+            gameData = shuffle([...questionPool]).slice(0, 10);
+            
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('end-screen').classList.add('hidden');
+            document.getElementById('score').innerText = score;
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            const currentData = gameData[currentIndex];
+            document.getElementById('progress').innerText = `${currentIndex + 1}/${gameData.length}`;
+            document.getElementById('target-word').innerText = currentData.word;
+            document.getElementById('tip-display').innerText = `💡 ${currentData.tip}`;
+
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+
+            const options = [
+                { body: "ראשון", label: "גוף ראשון", sub: "(מדבר/ת / מדברים/ות)" },
+                { body: "שני", label: "גוף שני", sub: "(נוכח/ת / נוכחים/ות)" },
+                { body: "שלישי", label: "גוף שלישי", sub: "(נסתר/ת / נסתרים/ות)" }
+            ];
+
+            // ערבוב מיקום כפתורי התשובות
+            shuffle(options).forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerHTML = `<span>${opt.label}</span><span class="option-sub">${opt.sub}</span>`;
+                btn.onclick = () => checkAnswer(opt.body, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selectedBody, btnElement) {
+            const currentData = gameData[currentIndex];
+            const allBtns = document.querySelectorAll('.option-btn');
+            
+            allBtns.forEach(b => b.style.pointerEvents = 'none');
+
+            if (selectedBody === currentData.body) {
+                playSound('correct');
+                btnElement.classList.add('correct');
+                score += 10;
+                document.getElementById('score').innerText = score;
+            } else {
+                playSound('wrong');
+                btnElement.classList.add('wrong');
+                allBtns.forEach(b => {
+                    if (b.innerText.includes(currentData.body)) {
+                        b.classList.add('correct');
+                    }
+                });
+            }
+
+            setTimeout(() => {
+                currentIndex++;
+                if (currentIndex < gameData.length) {
+                    loadQuestion();
+                } else {
+                    endGame();
+                }
+            }, 1200);
+        }
+
+        function endGame() {
+            document.getElementById('end-screen').classList.remove('hidden');
+            document.getElementById('final-score').innerText = `צברת ${score} מתוך ${gameData.length * 10} נקודות!`;
+        }
+
+        window.onload = initBackground;
+        window.onresize = initBackground;
+    </script>
+</body>
+</html>
